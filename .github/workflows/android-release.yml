@@ -43,8 +43,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Setup Android SDK and NDK
-        uses: android-actions/setup-android@v3
       - name: Install Android build tools
         run: |
           yes | sdkmanager --licenses > /dev/null || true
