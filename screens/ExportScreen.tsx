@@ -17,7 +17,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../context/ThemeContext";
 import { useProjects } from "../context/ProjectsContext";
 import { generate3DDXF, generateDXF } from "../lib/dxfWriter";
-import { generateKML, generateShapefileZip } from "../lib/exportFormats";
+import {
+  generateCSV,
+  generateGPX,
+  generateKML,
+  generateSVG,
+  generateShapefileZip,
+} from "../lib/exportFormats";
 import { generateOBJ } from "../lib/objWriter";
 import EmptyState from "../components/EmptyState";
 import { FeatureType } from "../types";
@@ -167,18 +173,34 @@ export default function ExportScreen() {
 
   const exportOBJModel = async () => {
     if (!activeProject) return;
-    const models = filteredFeatures.filter((f) => f.type === "building" && f.model3d && (f.elevation ?? 0) > 0);
+    const models = filteredFeatures.filter(
+      (f) => f.type === "building" && f.model3d && (f.elevation ?? 0) > 0,
+    );
     if (!models.length) {
-      Alert.alert("لا توجد نماذج محفوظة", "أنشئ نموذجاً محلياً للمباني أولاً من شاشة الخريطة.");
+      Alert.alert(
+        "لا توجد نماذج محفوظة",
+        "أنشئ نموذجاً محلياً للمباني أولاً من شاشة الخريطة.",
+      );
       return;
     }
     try {
       setExporting(true);
       const result = generateOBJ(activeProject, filteredFeatures);
-      await downloadTextOrShare(result.obj, `${sanitizeFileName(activeProject.name)}_${Date.now()}_3D.obj`, "text/plain");
-      setLastResult({ zoneNumber: result.zoneNumber, hemisphere: result.hemisphere, count: result.modelCount });
+      await downloadTextOrShare(
+        result.obj,
+        `${sanitizeFileName(activeProject.name)}_${Date.now()}_3D.obj`,
+        "text/plain",
+      );
+      setLastResult({
+        zoneNumber: result.zoneNumber,
+        hemisphere: result.hemisphere,
+        count: result.modelCount,
+      });
     } catch (e: any) {
-      Alert.alert("فشل تصدير OBJ", e?.message ?? "تعذر إنشاء ملف OBJ ثلاثي الأبعاد.");
+      Alert.alert(
+        "فشل تصدير OBJ",
+        e?.message ?? "تعذر إنشاء ملف OBJ ثلاثي الأبعاد.",
+      );
     } finally {
       setExporting(false);
     }
@@ -293,6 +315,63 @@ export default function ExportScreen() {
       );
     } catch (e: any) {
       Alert.alert("فشل التصدير", e?.message ?? "تعذر إنشاء ملف KML.");
+    }
+  };
+
+  const exportCSV = async () => {
+    if (!activeProject || !filteredFeatures.length) {
+      Alert.alert(
+        "لا توجد عناصر",
+        "اختر نوعاً واحداً على الأقل يحتوي على عناصر للتصدير.",
+      );
+      return;
+    }
+    try {
+      await downloadTextOrShare(
+        generateCSV(activeProject, filteredFeatures),
+        `${sanitizeFileName(activeProject.name)}_${Date.now()}.csv`,
+        "text/csv",
+      );
+    } catch (e: any) {
+      Alert.alert("فشل تصدير CSV", e?.message ?? "تعذر إنشاء ملف CSV.");
+    }
+  };
+
+  const exportGPX = async () => {
+    if (!activeProject || !filteredFeatures.length) {
+      Alert.alert(
+        "لا توجد عناصر",
+        "اختر نوعاً واحداً على الأقل يحتوي على عناصر للتصدير.",
+      );
+      return;
+    }
+    try {
+      await downloadTextOrShare(
+        generateGPX(activeProject, filteredFeatures),
+        `${sanitizeFileName(activeProject.name)}_${Date.now()}.gpx`,
+        "application/gpx+xml",
+      );
+    } catch (e: any) {
+      Alert.alert("فشل تصدير GPX", e?.message ?? "تعذر إنشاء ملف GPX.");
+    }
+  };
+
+  const exportSVG = async () => {
+    if (!activeProject || !filteredFeatures.length) {
+      Alert.alert(
+        "لا توجد عناصر",
+        "اختر نوعاً واحداً على الأقل يحتوي على عناصر للتصدير.",
+      );
+      return;
+    }
+    try {
+      await downloadTextOrShare(
+        generateSVG(activeProject, filteredFeatures),
+        `${sanitizeFileName(activeProject.name)}_${Date.now()}.svg`,
+        "image/svg+xml",
+      );
+    } catch (e: any) {
+      Alert.alert("فشل تصدير SVG", e?.message ?? "تعذر إنشاء مخطط SVG.");
     }
   };
 
@@ -530,8 +609,11 @@ export default function ExportScreen() {
               style={[styles.exportBtnOutline, { borderColor: "#9333EA" }]}
             >
               <Ionicons name="cube-outline" size={18} color="#9333EA" />
-              <Text style={{ color: "#9333EA", fontWeight: "800", marginRight: 8 }}>
-                تصدير OBJ قابل للعرض في Blender ({filteredFeatures.filter((f) => f.model3d).length})
+              <Text
+                style={{ color: "#9333EA", fontWeight: "800", marginRight: 8 }}
+              >
+                تصدير OBJ قابل للعرض في Blender (
+                {filteredFeatures.filter((f) => f.model3d).length})
               </Text>
             </Pressable>
 
@@ -593,6 +675,101 @@ export default function ExportScreen() {
                 تصدير Shapefile ZIP
               </Text>
             </Pressable>
+
+            <View style={[styles.formatGrid, { borderColor: palette.border }]}>
+              <Text style={[styles.formatGridTitle, { color: palette.text }]}>
+                صيغ إضافية للاستخدام الميداني
+              </Text>
+              <View style={styles.formatGridRow}>
+                <Pressable
+                  onPress={exportCSV}
+                  style={[
+                    styles.formatTile,
+                    {
+                      backgroundColor: palette.bgElevated,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="grid-outline"
+                    size={21}
+                    color={palette.primary}
+                  />
+                  <Text
+                    style={[styles.formatTileTitle, { color: palette.text }]}
+                  >
+                    CSV
+                  </Text>
+                  <Text
+                    style={[
+                      styles.formatTileHint,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    جدول النقاط
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={exportGPX}
+                  style={[
+                    styles.formatTile,
+                    {
+                      backgroundColor: palette.bgElevated,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="navigate-outline"
+                    size={21}
+                    color={palette.primary}
+                  />
+                  <Text
+                    style={[styles.formatTileTitle, { color: palette.text }]}
+                  >
+                    GPX
+                  </Text>
+                  <Text
+                    style={[
+                      styles.formatTileHint,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    أجهزة GPS
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={exportSVG}
+                  style={[
+                    styles.formatTile,
+                    {
+                      backgroundColor: palette.bgElevated,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="color-palette-outline"
+                    size={21}
+                    color={palette.primary}
+                  />
+                  <Text
+                    style={[styles.formatTileTitle, { color: palette.text }]}
+                  >
+                    SVG
+                  </Text>
+                  <Text
+                    style={[
+                      styles.formatTileHint,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    مخطط متجهي
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
 
             {lastResult && (
               <View
@@ -751,4 +928,28 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   specRow: { flexDirection: "row-reverse", marginBottom: 6 },
+  formatGrid: {
+    marginHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 16,
+  },
+  formatGridTitle: {
+    textAlign: "right",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+  formatGridRow: { flexDirection: "row", gap: 8 },
+  formatTile: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    gap: 4,
+  },
+  formatTileTitle: { fontSize: 13, fontWeight: "800" },
+  formatTileHint: { fontSize: 10 },
 });
