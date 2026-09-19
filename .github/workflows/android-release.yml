@@ -1,0 +1,75 @@
+name: Build Android Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22.x
+  PNPM_VERSION: 9.12.0
+
+jobs:
+  release:
+    name: Signed Android App Bundle
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "$KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD" && exit 1)
+          test -n "$KEY_ALIAS" || (echo "Missing ANDROID_KEY_ALIAS" && exit 1)
+          test -n "$KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD" && exit 1)
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - name: Setup Android SDK and NDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.1.12297006"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and tests
+        run: pnpm check && pnpm test
+      - name: Generate native Android project
+        run: CI=1 pnpm exec expo prebuild --platform android --no-install
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: node scripts/configure-android-signing.mjs
+      - name: Build signed AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+      - name: Upload signed AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: agon-surveyor-android-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
