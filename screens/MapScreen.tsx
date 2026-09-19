@@ -25,10 +25,11 @@ import { fetchOSMFeatures, MIN_ZOOM_FOR_FETCH } from '../lib/overpass';
 import { uid, formatDistance, formatArea, pathLength, polygonAreaSqMeters } from '../lib/geo';
 import { loadLastLayer, saveLastLayer } from '../lib/storage';
 import { subscribeFocus } from '../lib/mapBus';
+import { buildLocalBuildingModels, LocalModelConfig } from '../lib/buildingModel';
 
 export default function MapScreen() {
   const { palette } = useTheme();
-  const { activeProject, addFeature, addFeatures, updateFeature, updateProjectView } = useProjects();
+  const { activeProject, addFeature, addFeatures, updateFeature, updateFeatures, updateProjectView } = useProjects();
   const mapRef = useRef<GeoMapHandle>(null);
 
   const [ready, setReady] = useState(false);
@@ -230,10 +231,20 @@ export default function MapScreen() {
     } finally { setFetchingOSM(false); }
   };
 
-  const create3DModel = (height: number) => {
-    regionFeatures.filter((f) => f.type === 'building').forEach((f) => updateFeature(f.id, { elevation: height, model3d: true, fillOpacity: 0.38 }));
+  const create3DModel = (config: LocalModelConfig) => {
+    const result = buildLocalBuildingModels(regionFeatures, config, activeProject ?? undefined);
+    if (!result.updates.length) {
+      Alert.alert('لا توجد مبانٍ', 'لم يتم العثور على بصمات مبانٍ صالحة داخل المنطقة المحددة.');
+      return;
+    }
+    const ids = result.updates.map((item) => item.id);
+    updateFeatures(ids, result.updates[0].patch);
     setModelModalVisible(false);
-    showToast(`تم إنشاء نموذج ثلاثي الأبعاد لـ ${regionFeatures.filter((f) => f.type === 'building').length} مبنى`);
+    Alert.alert(
+      'اكتمل المعالج المحلي',
+      `تم بثق ${result.summary.buildingCount} مبنى بارتفاع ${result.summary.averageHeightM.toFixed(2)} م.\nالمساحة المبنية: ${formatArea(result.summary.footprintAreaSqMeters)}\nالحجم التقريبي: ${result.summary.totalVolumeM3.toFixed(1)} م³`,
+    );
+    showToast(`تم إنشاء نموذج محلي لـ ${result.summary.buildingCount} مبنى`);
   };
 
   return (
@@ -365,7 +376,12 @@ export default function MapScreen() {
           onCancel={() => setPendingFeature(null)}
           onSave={saveFeature}
         />
-        <BuildingModelModal visible={modelModalVisible} onClose={() => setModelModalVisible(false)} onCreate={create3DModel} />
+        <BuildingModelModal
+          visible={modelModalVisible}
+          buildingCount={regionFeatures.filter((feature) => feature.type === 'building').length}
+          onClose={() => setModelModalVisible(false)}
+          onCreate={create3DModel}
+        />
       </View>
     </SafeAreaView>
   );

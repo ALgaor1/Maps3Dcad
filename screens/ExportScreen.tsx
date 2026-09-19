@@ -18,6 +18,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useProjects } from "../context/ProjectsContext";
 import { generate3DDXF, generateDXF } from "../lib/dxfWriter";
 import { generateKML, generateShapefileZip } from "../lib/exportFormats";
+import { generateOBJ } from "../lib/objWriter";
 import EmptyState from "../components/EmptyState";
 import { FeatureType } from "../types";
 import DeveloperFooter from "../components/DeveloperFooter";
@@ -159,6 +160,25 @@ export default function ExportScreen() {
         "فشل تصدير النموذج",
         e?.message ?? "تعذر إنشاء ملف DXF ثلاثي الأبعاد.",
       );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportOBJModel = async () => {
+    if (!activeProject) return;
+    const models = filteredFeatures.filter((f) => f.type === "building" && f.model3d && (f.elevation ?? 0) > 0);
+    if (!models.length) {
+      Alert.alert("لا توجد نماذج محفوظة", "أنشئ نموذجاً محلياً للمباني أولاً من شاشة الخريطة.");
+      return;
+    }
+    try {
+      setExporting(true);
+      const result = generateOBJ(activeProject, filteredFeatures);
+      await downloadTextOrShare(result.obj, `${sanitizeFileName(activeProject.name)}_${Date.now()}_3D.obj`, "text/plain");
+      setLastResult({ zoneNumber: result.zoneNumber, hemisphere: result.hemisphere, count: result.modelCount });
+    } catch (e: any) {
+      Alert.alert("فشل تصدير OBJ", e?.message ?? "تعذر إنشاء ملف OBJ ثلاثي الأبعاد.");
     } finally {
       setExporting(false);
     }
@@ -501,6 +521,17 @@ export default function ExportScreen() {
               <Text style={styles.exportBtnText}>
                 تصدير النموذج ثلاثي الأبعاد DXF (
                 {filteredFeatures.filter((f) => f.model3d).length})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={exportOBJModel}
+              disabled={exporting}
+              style={[styles.exportBtnOutline, { borderColor: "#9333EA" }]}
+            >
+              <Ionicons name="cube-outline" size={18} color="#9333EA" />
+              <Text style={{ color: "#9333EA", fontWeight: "800", marginRight: 8 }}>
+                تصدير OBJ قابل للعرض في Blender ({filteredFeatures.filter((f) => f.model3d).length})
               </Text>
             </Pressable>
 

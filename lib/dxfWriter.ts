@@ -119,6 +119,15 @@ function face3DEntity(layer: string, pts: { x: number; y: number; z: number }[])
   return s;
 }
 
+function triangulatedFaces(layer: string, pts: { x: number; y: number; z: number }[]): string {
+  if (pts.length < 3) return '';
+  let result = '';
+  for (let i = 1; i < pts.length - 1; i += 1) {
+    result += face3DEntity(layer, [pts[0], pts[i], pts[i + 1]]);
+  }
+  return result;
+}
+
 export interface DXFGenerationResult {
   dxf: string;
   zoneNumber: number;
@@ -137,8 +146,8 @@ export function generate3DDXF(project: Project, features: GeoFeature[]): DXFGene
   for (const feature of modelFeatures) {
     const roof = feature.coords.map((c) => { const u = latLonToUTM(c[0], c[1], zoneNumber); return { x: u.easting, y: u.northing, z: feature.elevation ?? 0 }; });
     const base = roof.map((p) => ({ ...p, z: 0 }));
-    faces += face3DEntity('BUILDINGS_3D', base.slice(0, 4));
-    faces += face3DEntity('BUILDINGS_3D', roof.slice(0, 4));
+    faces += triangulatedFaces('BUILDINGS_3D', base);
+    faces += triangulatedFaces('BUILDINGS_3D', roof);
     for (let i = 0; i < roof.length; i++) faces += face3DEntity('BUILDINGS_3D', [base[i], base[(i + 1) % base.length], roof[(i + 1) % roof.length], roof[i]]);
   }
   return { ...result, dxf: result.dxf.replace('0\nENDSEC\n0\nEOF\n', `${faces}0\nENDSEC\n0\nEOF\n`), featureCount: modelFeatures.length };

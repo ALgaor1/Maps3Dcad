@@ -24,6 +24,11 @@ export interface GeoFeature {
   fillOpacity?: number;
   lineWidth?: number;
   model3d?: boolean;
+  buildingFloors?: number;
+  roofStyle?: 'flat' | 'gable' | 'hip';
+  modelSource?: 'local-parametric' | 'osm-height' | 'manual';
+  modelVersion?: string;
+  modelUpdatedAt?: number;
   layerId?: string;
   visible?: boolean;
 }

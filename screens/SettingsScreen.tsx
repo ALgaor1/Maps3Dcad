@@ -84,6 +84,13 @@ export default function SettingsScreen() {
             subtitle="ملف AutoCAD DXF (R12) بإحداثيات UTM مترية دقيقة، بطبقات وألوان قياسية جاهز للعمل الهندسي والمساحي"
             color={palette.text}
             mutedColor={palette.textMuted}
+          />
+          <InfoRow
+            icon="cube-outline"
+            title="معالج مبانٍ محلي ثلاثي الأبعاد"
+            subtitle="حوّل بصمات المباني إلى مجسمات بارامترية على الجهاز من خلال عدد الطوابق وارتفاعها ونوع السقف، ثم صدّرها بصيغة DXF أو OBJ دون رفع البيانات"
+            color={palette.text}
+            mutedColor={palette.textMuted}
             last
           />
         </View>
@@ -95,8 +102,8 @@ export default function SettingsScreen() {
               <Ionicons name="map" size={26} color="#fff" />
             </View>
             <View style={{ flex: 1, alignItems: 'flex-end', marginRight: 12 }}>
-              <Text style={{ color: palette.text, fontWeight: '800', fontSize: 15 }}>GeoSurvey Pro - طبقات</Text>
-              <Text style={{ color: palette.textMuted, fontSize: 12, marginTop: 2 }}>الإصدار 2.0.0 · تطبيق مساحة ميدانية احترافي</Text>
+              <Text style={{ color: palette.text, fontWeight: '800', fontSize: 15 }}>Agon Surveyor</Text>
+              <Text style={{ color: palette.textMuted, fontSize: 12, marginTop: 2 }}>الإصدار 2.1.0 · مساحة ميدانية ونمذجة محلية</Text>
             </View>
           </View>
           <Pressable

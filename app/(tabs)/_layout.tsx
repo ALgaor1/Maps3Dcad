@@ -1,38 +1,60 @@
-import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { HapticTab } from '@/components/haptic-tab';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
-  const colors = useColors();
+  const { palette } = useTheme();
   const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
-  const tabBarHeight = 56 + bottomPadding;
+  const bottomPadding = Platform.OS === 'web' ? 10 : Math.max(insets.bottom, 8);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: palette.primary,
+        tabBarInactiveTintColor: palette.textMuted,
         tabBarStyle: {
-          paddingTop: 8,
+          height: 62 + bottomPadding,
+          paddingTop: 7,
           paddingBottom: bottomPadding,
-          height: tabBarHeight,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          backgroundColor: palette.bgElevated,
+          borderTopColor: palette.border,
+          borderTopWidth: 1,
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'الخريطة',
+          tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="features"
+        options={{
+          title: 'العناصر',
+          tabBarIcon: ({ color, size }) => <Ionicons name="layers-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="export"
+        options={{
+          title: 'التصدير',
+          tabBarIcon: ({ color, size }) => <Ionicons name="download-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'الإعدادات',
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} />,
         }}
       />
     </Tabs>

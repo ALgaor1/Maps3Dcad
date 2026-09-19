@@ -19,7 +19,7 @@ const TYPE_META: Record<FeatureType, { icon: keyof typeof Ionicons.glyphMap; lab
   polygon: { icon: 'shapes', label: 'مضلعات' },
 };
 
-type FilterType = 'all' | FeatureType | 'osm' | 'manual' | 'imported';
+type FilterType = 'all' | FeatureType | 'osm' | 'manual' | 'imported' | 'model3d';
 
 export default function FeaturesScreen() {
   const { palette } = useTheme();
@@ -38,6 +38,7 @@ export default function FeaturesScreen() {
     if (filter === 'osm') return features.filter((f) => f.source === 'osm');
     if (filter === 'manual') return features.filter((f) => f.source === 'manual');
     if (filter === 'imported') return features.filter((f) => f.source === 'imported');
+    if (filter === 'model3d') return features.filter((f) => f.model3d);
     return features.filter((f) => f.type === filter);
   }, [features, filter]);
 
@@ -113,7 +114,7 @@ export default function FeaturesScreen() {
             {item.name}
           </Text>
           <Text style={{ color: palette.textMuted, fontSize: 12, marginTop: 2, textAlign: 'right' }}>
-            {item.category} {item.pointCode ? `· الرمز: ${item.pointCode}` : ''} {item.elevation !== undefined ? `· المنسوب: ${item.elevation}` : ''} {m ? `· ${m}` : ''}
+            {item.category} {item.pointCode ? `· الرمز: ${item.pointCode}` : ''} {item.elevation !== undefined ? `· الارتفاع: ${item.elevation}م` : ''} {item.buildingFloors ? `· ${item.buildingFloors} طوابق` : ''} {m ? `· ${m}` : ''}
           </Text>
         </View>
         {item.source === 'osm' && (
@@ -124,6 +125,11 @@ export default function FeaturesScreen() {
         {item.source === 'imported' && (
           <View style={[styles.osmTag, { backgroundColor: '#2563EB20' }]}>
             <Text style={{ color: '#2563EB', fontSize: 10, fontWeight: '700' }}>مستورد</Text>
+          </View>
+        )}
+        {item.model3d && (
+          <View style={[styles.osmTag, { backgroundColor: '#9333EA20' }]}>
+            <Text style={{ color: '#9333EA', fontSize: 10, fontWeight: '800' }}>3D محلي</Text>
           </View>
         )}
         <Ionicons name="chevron-back" size={16} color={palette.textMuted} />
@@ -164,6 +170,7 @@ export default function FeaturesScreen() {
             { key: 'osm', label: 'من OSM' },
             { key: 'manual', label: 'يدوي' },
             { key: 'imported', label: 'مستورد' },
+            { key: 'model3d', label: 'نماذج 3D' },
           ] as { key: FilterType; label: string }[]
         ).map((opt) => (
           <Pressable
